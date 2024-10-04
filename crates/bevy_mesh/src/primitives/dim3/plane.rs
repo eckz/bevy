@@ -1,10 +1,11 @@
 use crate::{Indices, Mesh, MeshBuilder, Meshable};
 use bevy_asset::RenderAssetUsages;
 use bevy_math::{primitives::Plane3d, Dir3, Quat, Vec2, Vec3};
+use bevy_reflect::prelude::*;
 use wgpu::PrimitiveTopology;
 
 /// A builder used for creating a [`Mesh`] with a [`Plane3d`] shape.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Reflect)]
 pub struct PlaneMeshBuilder {
     /// The [`Plane3d`] shape.
     pub plane: Plane3d,

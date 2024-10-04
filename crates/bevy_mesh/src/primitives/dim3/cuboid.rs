@@ -1,9 +1,11 @@
 use crate::{Indices, Mesh, MeshBuilder, Meshable};
 use bevy_asset::RenderAssetUsages;
 use bevy_math::{primitives::Cuboid, Vec3};
+use bevy_reflect::prelude::*;
 use wgpu::PrimitiveTopology;
 
 /// A builder used for creating a [`Mesh`] with a [`Cuboid`] shape.
+#[derive(Clone, Copy, Debug, Reflect)]
 pub struct CuboidMeshBuilder {
     half_size: Vec3,
 }

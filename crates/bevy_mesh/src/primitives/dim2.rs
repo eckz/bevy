@@ -12,10 +12,11 @@ use bevy_math::{
     },
     FloatExt, Vec2,
 };
+use bevy_reflect::prelude::*;
 use wgpu::PrimitiveTopology;
 
 /// A builder used for creating a [`Mesh`] with a [`Circle`] shape.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Reflect)]
 pub struct CircleMeshBuilder {
     /// The [`Circle`] shape.
     pub circle: Circle,
@@ -98,7 +99,7 @@ impl From<Circle> for Mesh {
 /// It's expected that more will be added in the future, such as a variant that causes the texture to be
 /// scaled to fit the bounding box of the shape, which would be good for packed textures only including the
 /// portion of the circle that is needed to display.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Reflect)]
 #[non_exhaustive]
 pub enum CircularMeshUvMode {
     /// Treats the shape as a mask over a circle of equal size and radius,
@@ -119,7 +120,7 @@ impl Default for CircularMeshUvMode {
 ///
 /// The resulting mesh will have a UV-map such that the center of the circle is
 /// at the center of the texture.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Reflect)]
 pub struct CircularSectorMeshBuilder {
     /// The sector shape.
     pub sector: CircularSector,
@@ -256,7 +257,7 @@ impl From<CircularSector> for Mesh {
 ///
 /// The resulting mesh will have a UV-map such that the center of the circle is
 /// at the center of the texture.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Reflect)]
 pub struct CircularSegmentMeshBuilder {
     /// The segment shape.
     pub segment: CircularSegment,
@@ -488,7 +489,7 @@ impl From<RegularPolygon> for Mesh {
 }
 
 /// A builder used for creating a [`Mesh`] with an [`Ellipse`] shape.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Reflect)]
 pub struct EllipseMeshBuilder {
     /// The [`Ellipse`] shape.
     pub ellipse: Ellipse,
@@ -892,7 +893,7 @@ impl From<Rectangle> for Mesh {
 }
 
 /// A builder used for creating a [`Mesh`] with a [`Capsule2d`] shape.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Reflect)]
 pub struct Capsule2dMeshBuilder {
     /// The [`Capsule2d`] shape.
     pub capsule: Capsule2d,
