@@ -1,8 +1,4 @@
-use crate::{
-    experimental::{UiChildren, UiRootNodes},
-    BorderRadius, ComputedNode, ContentSize, DefaultUiCamera, Display, Node, Outline, OverflowAxis,
-    ScrollPosition, TargetCamera, UiScale, Val,
-};
+use crate::{experimental::{UiChildren, UiRootNodes}, BorderRadius, ComputedNode, ContentSize, DefaultUiCamera, Display, Node, Outline, OverflowAxis, ScrollPosition, TargetCamera, UiScale, NodeTransform, Val};
 use bevy_ecs::{
     change_detection::{DetectChanges, DetectChangesMut},
     entity::{Entity, EntityHashMap, EntityHashSet},
@@ -128,6 +124,7 @@ pub fn ui_layout_system(
         &mut ComputedNode,
         &mut Transform,
         &Node,
+        Option<&NodeTransform>,
         Option<&BorderRadius>,
         Option<&Outline>,
         Option<&ScrollPosition>,
@@ -325,6 +322,7 @@ with UI components as a child of an entity without UI components, your UI layout
             &mut ComputedNode,
             &mut Transform,
             &Node,
+            Option<&NodeTransform>,
             Option<&BorderRadius>,
             Option<&Outline>,
             Option<&ScrollPosition>,
@@ -338,6 +336,7 @@ with UI components as a child of an entity without UI components, your UI layout
             mut node,
             mut transform,
             style,
+            maybe_node_transform,
             maybe_border_radius,
             maybe_outline,
             maybe_scroll_position,
@@ -410,8 +409,21 @@ with UI components as a child of an entity without UI components, your UI layout
                 .max(0.);
             }
 
-            if transform.translation.truncate() != node_center {
-                transform.translation = node_center.extend(0.);
+            match maybe_node_transform {
+                Some(node_transform) if !node_transform.is_identity() => {
+                    let base_transform = Transform::from_translation(node_center.extend(0.));
+
+                    let resolved_node_transform = node_transform
+                        .resolve(node.size(), viewport_size, inverse_target_scale_factor)
+                        .unwrap_or(Transform::IDENTITY);
+
+                    transform.set_if_neq(base_transform.mul_transform(resolved_node_transform));
+                },
+                _ => {
+                    if transform.translation.truncate() != node_center {
+                        transform.translation = node_center.extend(0.);
+                    }
+                }
             }
 
             let scroll_position: Vec2 = maybe_scroll_position

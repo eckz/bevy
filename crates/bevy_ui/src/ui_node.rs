@@ -1,7 +1,7 @@
-use crate::{FocusPolicy, UiRect, Val};
+use crate::{FocusPolicy, UiRect, Val, ValArithmeticError};
 use bevy_color::Color;
 use bevy_ecs::{prelude::*, system::SystemParam};
-use bevy_math::{vec4, Rect, Vec2, Vec4Swizzles};
+use bevy_math::{vec4, Dir3, Quat, Rect, Vec2, Vec3, Vec4Swizzles};
 use bevy_reflect::prelude::*;
 use bevy_render::{
     camera::{Camera, RenderTarget},
@@ -2616,5 +2616,173 @@ pub struct UiBoxShadowSamples(pub u32);
 impl Default for UiBoxShadowSamples {
     fn default() -> Self {
         Self(4)
+    }
+}
+
+
+#[derive(Clone, Copy, Debug, Reflect, PartialEq)]
+pub enum NodeTransformFunction {
+    Translate {
+        x: Val,
+        y: Val,
+    },
+    Translate3d {
+        x: Val,
+        y: Val,
+        z: Val,
+    },
+    Rotate {
+        angle: f32
+    },
+    Rotate3d {
+        axis: Dir3,
+        angle: f32
+    },
+    Scale(Vec2),
+    Scale3d(Vec3),
+}
+
+impl NodeTransformFunction {
+
+    pub fn is_identity(&self) -> bool {
+        match *self {
+            NodeTransformFunction::Translate { x, y} => {
+                x == Val::ZERO && y == Val::ZERO
+            }
+            NodeTransformFunction::Translate3d { x, y, z } => {
+                x == Val::ZERO && y == Val::ZERO && z == Val::ZERO
+            }
+            NodeTransformFunction::Rotate { angle } => {
+                angle.abs() <= f32::EPSILON
+            }
+            NodeTransformFunction::Rotate3d { angle, .. } => {
+                angle.abs() <= f32::EPSILON
+            }
+            NodeTransformFunction::Scale(scale) => {
+                scale.abs().max_element() <= f32::EPSILON
+            }
+            NodeTransformFunction::Scale3d(scale) => {
+                scale.abs().max_element() <= f32::EPSILON
+            }
+        }
+    }
+
+    pub fn mul_assign_into_transform(&self, transform: &mut Transform, physical_parent_size: Vec2, viewport_size: Vec2, inverse_scale_factor: f32) -> Result<(), ValArithmeticError> {
+        let logical_parent_size = physical_parent_size * inverse_scale_factor;
+        let scale_factor = inverse_scale_factor.recip();
+        Ok(match self {
+            NodeTransformFunction::Translate { x, y } => {
+                let point = Vec3::new(
+                    x.resolve(logical_parent_size.x, viewport_size)? * scale_factor,
+                    y.resolve(logical_parent_size.y, viewport_size)? * scale_factor,
+                    0.0,
+                );
+                transform.translation = transform.transform_point(point);
+            },
+            NodeTransformFunction::Translate3d { x, y, z } => {
+                let point = Vec3::new(
+                    x.resolve(logical_parent_size.x, viewport_size)? * scale_factor,
+                    y.resolve(logical_parent_size.y, viewport_size)? * scale_factor,
+                    // TODO: I'm not sure which size z uses as percentage
+                    z.resolve(physical_parent_size.x, viewport_size)?,
+                );
+                transform.translation = transform.transform_point(point);
+            },
+            NodeTransformFunction::Rotate { angle } => {
+                let rotation = Quat::from_rotation_z(*angle);
+                transform.rotation *= rotation;
+            },
+            NodeTransformFunction::Rotate3d { axis, angle} => {
+                let rotation = Quat::from_axis_angle(**axis, *angle);
+                transform.rotation *= rotation;
+            },
+            NodeTransformFunction::Scale(scale) => {
+                transform.scale *= scale.extend(1.0);
+            },
+            NodeTransformFunction::Scale3d(scale) => {
+                transform.scale *= scale;
+            }
+        })
+    }
+}
+
+/// TODO
+#[derive(Component, Clone, Default, Debug, Reflect, PartialEq)]
+pub struct NodeTransform {
+    functions: Vec<NodeTransformFunction>
+}
+
+impl NodeTransform {
+
+    pub fn new() -> Self {
+        Self { functions: vec![] }
+    }
+
+    pub fn is_identity(&self) -> bool {
+        self.functions.is_empty() || self.functions.iter().all(|f| f.is_identity())
+    }
+
+    pub fn from_translate(x: Val, y: Val) -> Self {
+        Self::new().with_translate(x, y)
+    }
+
+    pub fn from_translate3d(x: Val, y: Val, z: Val) -> Self {
+        Self::new().with_translate3d(x, y, z)
+    }
+
+    pub fn from_rotate(angle: f32) -> Self {
+        Self::new().with_rotate(angle)
+    }
+
+    pub fn from_scale(scale: Vec2) -> Self {
+        Self::new().with_scale(scale)
+    }
+
+    pub fn push_function(&mut self, item: NodeTransformFunction) {
+        self.functions.push(item);
+    }
+
+    pub fn with_function(mut self, item: NodeTransformFunction) -> Self {
+        self.functions.push(item);
+        self
+    }
+
+    pub fn functions(&self) -> &[NodeTransformFunction] {
+        &self.functions
+    }
+
+    pub fn with_translate(self, x: Val, y: Val) -> Self {
+        self.with_function(NodeTransformFunction::Translate { x, y })
+    }
+
+    pub fn with_translate3d(self, x: Val, y: Val, z: Val) -> Self {
+        self.with_function(NodeTransformFunction::Translate3d { x, y, z })
+    }
+
+    pub fn with_rotate(self, angle: f32) -> Self {
+        self.with_function(NodeTransformFunction::Rotate { angle })
+    }
+
+    pub fn with_rotate3d(self, axis: Dir3, angle: f32) -> Self {
+        self.with_function(NodeTransformFunction::Rotate3d { axis, angle })
+    }
+
+    pub fn with_scale(self, scale: Vec2) -> Self {
+        self.with_function(NodeTransformFunction::Scale(scale))
+    }
+
+    pub fn with_scale3d(self, scale: Vec3) -> Self {
+        self.with_function(NodeTransformFunction::Scale3d(scale))
+    }
+
+    pub fn resolve(&self, parent_size: Vec2, viewport_size: Vec2, inverse_scale_factor: f32) -> Result<Transform, ValArithmeticError> {
+        let mut result = Transform::IDENTITY;
+
+        self.functions.iter().try_fold(&mut result, |transform, item| {
+            item.mul_assign_into_transform(transform, parent_size, viewport_size, inverse_scale_factor)?;
+            Ok(transform)
+        })?;
+
+        Ok(result)
     }
 }

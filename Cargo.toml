@@ -3218,6 +3218,17 @@ category = "UI (User Interface)"
 wasm = true
 
 [[example]]
+name = "ui_transform"
+path = "examples/ui/ui_transform.rs"
+doc-scrape-examples = true
+
+[package.metadata.example.ui_transform]
+name = "UI Transform"
+description = "Illustrates how to use UI Transforms"
+category = "UI (User Interface)"
+wasm = true
+
+[[example]]
 name = "viewport_debug"
 path = "examples/ui/viewport_debug.rs"
 doc-scrape-examples = true
