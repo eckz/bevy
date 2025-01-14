@@ -5,7 +5,7 @@ use bevy_reflect::Reflect;
 /// An [`Event`] that is fired whenever there is a change in the world's hierarchy.
 ///
 /// [`Event`]: bevy_ecs::event::Event
-#[derive(Event, Debug, Clone, PartialEq, Eq)]
+#[derive(Event, Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "reflect", derive(Reflect), reflect(Debug, PartialEq))]
 pub enum HierarchyEvent {
     /// Fired whenever an [`Entity`] is added as a child to a parent.
