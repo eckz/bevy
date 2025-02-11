@@ -368,18 +368,6 @@ impl PartialReflect for DynamicFunction<'static> {
         None
     }
 
-    fn into_partial_reflect(self: Box<Self>) -> Box<dyn PartialReflect> {
-        self
-    }
-
-    fn as_partial_reflect(&self) -> &dyn PartialReflect {
-        self
-    }
-
-    fn as_partial_reflect_mut(&mut self) -> &mut dyn PartialReflect {
-        self
-    }
-
     fn try_into_reflect(self: Box<Self>) -> Result<Box<dyn Reflect>, Box<dyn PartialReflect>> {
         Err(self)
     }
@@ -596,11 +584,8 @@ mod tests {
 
                 match this.reflect_ref() {
                     ReflectRef::Function(func) => {
-                        let result = func.reflect_call(
-                            ArgList::new()
-                                .with_ref(this.as_partial_reflect())
-                                .with_owned(curr - 1),
-                        );
+                        let result = func
+                            .reflect_call(ArgList::new().with_ref(&**this).with_owned(curr - 1));
                         let value = result.unwrap().unwrap_owned().try_take::<i32>().unwrap();
                         Ok((curr * value).into_return())
                     }

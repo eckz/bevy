@@ -54,7 +54,7 @@ impl From<()> for DynamicVariant {
 /// );
 ///
 /// // Apply the DynamicEnum as a patch to the original value
-/// value.apply(dyn_enum.as_partial_reflect());
+/// value.apply(&dyn_enum);
 ///
 /// // Tada!
 /// assert_eq!(None, value);
@@ -279,21 +279,6 @@ impl PartialReflect for DynamicEnum {
     #[inline]
     fn get_represented_type_info(&self) -> Option<&'static TypeInfo> {
         self.represented_type
-    }
-
-    #[inline]
-    fn into_partial_reflect(self: Box<Self>) -> Box<dyn PartialReflect> {
-        self
-    }
-
-    #[inline]
-    fn as_partial_reflect(&self) -> &dyn PartialReflect {
-        self
-    }
-
-    #[inline]
-    fn as_partial_reflect_mut(&mut self) -> &mut dyn PartialReflect {
-        self
     }
 
     fn try_into_reflect(self: Box<Self>) -> Result<Box<dyn Reflect>, Box<dyn PartialReflect>> {

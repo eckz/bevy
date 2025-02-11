@@ -176,7 +176,7 @@ impl<'a> Serialize for SceneMapSerializer<'a> {
                 .map(|entry| {
                     (
                         entry.get_represented_type_info().unwrap().type_path(),
-                        entry.as_partial_reflect(),
+                        &**entry,
                     )
                 })
                 .collect::<Vec<_>>();
@@ -496,8 +496,8 @@ impl<'a, 'de> Visitor<'de> for SceneMapVisitor<'a> {
                 .registry
                 .get(registration.type_id())
                 .and_then(|tr| tr.data::<ReflectFromReflect>())
-                .and_then(|fr| fr.from_reflect(value.as_partial_reflect()))
-                .map(PartialReflect::into_partial_reflect)
+                .and_then(|fr| fr.from_reflect(&*value))
+                .map(|b| b as Box<dyn PartialReflect>)
                 .unwrap_or(value);
 
             entries.push(value);

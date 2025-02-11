@@ -25,7 +25,6 @@ mod tests {
         PartialReflect, Reflect, ReflectSerialize, Struct, TypeRegistry,
     };
     use alloc::{
-        boxed::Box,
         string::{String, ToString},
         vec,
         vec::Vec,
@@ -407,7 +406,7 @@ mod tests {
             none: None,
         };
         let dynamic = value.clone_dynamic();
-        let reflect = dynamic.as_partial_reflect();
+        let reflect: &dyn PartialReflect = &dynamic;
 
         let registry = get_registry();
 
@@ -652,7 +651,7 @@ mod tests {
     mod functions {
         use super::*;
         use crate::func::{DynamicFunction, IntoFunction};
-        use alloc::string::ToString;
+        use alloc::{boxed::Box, string::ToString};
 
         #[test]
         fn should_not_serialize_function() {
@@ -667,7 +666,7 @@ mod tests {
             });
 
             let registry = TypeRegistry::new();
-            let serializer = ReflectSerializer::new(value.as_partial_reflect(), &registry);
+            let serializer = ReflectSerializer::new(&*value, &registry);
 
             let error = ron::ser::to_string(&serializer).unwrap_err();
 

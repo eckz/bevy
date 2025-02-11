@@ -120,7 +120,7 @@ impl DynamicScene {
                 SceneEntityMapper::world_scope(entity_map, world, |world, mapper| {
                     reflect_component.apply_or_insert_mapped(
                         &mut world.entity_mut(entity),
-                        component.as_partial_reflect(),
+                        &*component,
                         &type_registry,
                         mapper,
                     );
@@ -152,13 +152,13 @@ impl DynamicScene {
             // them to the entities in the world.
             if let Some(map_entities) = registration.data::<ReflectMapEntities>() {
                 SceneEntityMapper::world_scope(entity_map, world, |_, mapper| {
-                    map_entities.map_entities(resource.as_partial_reflect_mut(), mapper);
+                    map_entities.map_entities(&mut *resource, mapper);
                 });
             }
 
             // If the world already contains an instance of the given resource
             // just apply the (possibly) new value, otherwise insert the resource
-            reflect_resource.apply_or_insert(world, resource.as_partial_reflect(), &type_registry);
+            reflect_resource.apply_or_insert(world, &*resource, &type_registry);
         }
 
         Ok(())

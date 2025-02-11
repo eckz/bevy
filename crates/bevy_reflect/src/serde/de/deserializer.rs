@@ -78,16 +78,16 @@ use super::ReflectDeserializerProcessor;
 /// // Since `MyStruct` is not an opaque type and does not register `ReflectDeserialize`,
 /// // we know that its deserialized value will be a `DynamicStruct`,
 /// // although it will represent `MyStruct`.
-/// assert!(output.as_partial_reflect().represents::<MyStruct>());
+/// assert!(output.represents::<MyStruct>());
 ///
 /// // We can convert back to `MyStruct` using `FromReflect`.
-/// let value: MyStruct = <MyStruct as FromReflect>::from_reflect(output.as_partial_reflect()).unwrap();
+/// let value: MyStruct = <MyStruct as FromReflect>::from_reflect(&*output).unwrap();
 /// assert_eq!(value, MyStruct { value: 123 });
 ///
 /// // We can also do this dynamically with `ReflectFromReflect`.
 /// let type_id = output.get_represented_type_info().unwrap().type_id();
 /// let reflect_from_reflect = registry.get_type_data::<ReflectFromReflect>(type_id).unwrap();
-/// let value: Box<dyn Reflect> = reflect_from_reflect.from_reflect(output.as_partial_reflect()).unwrap();
+/// let value: Box<dyn Reflect> = reflect_from_reflect.from_reflect(&*output).unwrap();
 /// assert!(value.is::<MyStruct>());
 /// assert_eq!(value.take::<MyStruct>().unwrap(), MyStruct { value: 123 });
 /// ```
@@ -246,16 +246,16 @@ impl<'de, P: ReflectDeserializerProcessor> DeserializeSeed<'de> for ReflectDeser
 /// // Since `MyStruct` is not an opaque type and does not register `ReflectDeserialize`,
 /// // we know that its deserialized value will be a `DynamicStruct`,
 /// // although it will represent `MyStruct`.
-/// assert!(output.as_partial_reflect().represents::<MyStruct>());
+/// assert!(output.represents::<MyStruct>());
 ///
 /// // We can convert back to `MyStruct` using `FromReflect`.
-/// let value: MyStruct = <MyStruct as FromReflect>::from_reflect(output.as_partial_reflect()).unwrap();
+/// let value: MyStruct = <MyStruct as FromReflect>::from_reflect(&*output).unwrap();
 /// assert_eq!(value, MyStruct { value: 123 });
 ///
 /// // We can also do this dynamically with `ReflectFromReflect`.
 /// let type_id = output.get_represented_type_info().unwrap().type_id();
 /// let reflect_from_reflect = registry.get_type_data::<ReflectFromReflect>(type_id).unwrap();
-/// let value: Box<dyn Reflect> = reflect_from_reflect.from_reflect(output.as_partial_reflect()).unwrap();
+/// let value: Box<dyn Reflect> = reflect_from_reflect.from_reflect(&*output).unwrap();
 /// assert!(value.is::<MyStruct>());
 /// assert_eq!(value.take::<MyStruct>().unwrap(), MyStruct { value: 123 });
 /// ```
@@ -379,7 +379,7 @@ impl<'de, P: ReflectDeserializerProcessor> DeserializeSeed<'de>
             // Handle both Value case and types that have a custom `ReflectDeserialize`
             if let Some(deserialize_reflect) = self.registration.data::<ReflectDeserialize>() {
                 let value = deserialize_reflect.deserialize(deserializer)?;
-                return Ok(value.into_partial_reflect());
+                return Ok(value);
             }
 
             if let Some(deserialize_reflect) =

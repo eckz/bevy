@@ -252,8 +252,40 @@ pub trait GetPath: PartialReflect {
     ///
     /// To retrieve a statically typed reference, use
     /// [`path`][GetPath::path].
+    fn reflect_path<'p>(&self, path: impl ReflectPath<'p>) -> PathResult<'p, &dyn PartialReflect>;
+
+    /// Returns a mutable reference to the value specified by `path`.
+    ///
+    /// To retrieve a statically typed mutable reference, use
+    /// [`path_mut`][GetPath::path_mut].
+    fn reflect_path_mut<'p>(
+        &mut self,
+        path: impl ReflectPath<'p>,
+    ) -> PathResult<'p, &mut dyn PartialReflect>;
+
+    /// Returns a statically typed reference to the value specified by `path`.
+    ///
+    /// This will automatically handle downcasting to type `T`.
+    /// The downcast will fail if this value is not of type `T`
+    /// (which may be the case when using dynamic types like [`DynamicStruct`]).
+    ///
+    /// [`DynamicStruct`]: crate::DynamicStruct
+    fn path<'p, T: Reflect>(&self, path: impl ReflectPath<'p>) -> PathResult<'p, &T>;
+
+    /// Returns a statically typed mutable reference to the value specified by `path`.
+    ///
+    /// This will automatically handle downcasting to type `T`.
+    /// The downcast will fail if this value is not of type `T`
+    /// (which may be the case when using dynamic types like [`DynamicStruct`]).
+    ///
+    /// [`DynamicStruct`]: crate::DynamicStruct
+    fn path_mut<'p, T: Reflect>(&mut self, path: impl ReflectPath<'p>) -> PathResult<'p, &mut T>;
+}
+
+// Implement `GetPath` for `dyn Reflect`
+impl<R: Reflect> GetPath for R {
     fn reflect_path<'p>(&self, path: impl ReflectPath<'p>) -> PathResult<'p, &dyn PartialReflect> {
-        path.reflect_element(self.as_partial_reflect())
+        path.reflect_element(self as &dyn PartialReflect)
     }
 
     /// Returns a mutable reference to the value specified by `path`.
@@ -264,7 +296,7 @@ pub trait GetPath: PartialReflect {
         &mut self,
         path: impl ReflectPath<'p>,
     ) -> PathResult<'p, &mut dyn PartialReflect> {
-        path.reflect_element_mut(self.as_partial_reflect_mut())
+        path.reflect_element_mut(self as &mut dyn PartialReflect)
     }
 
     /// Returns a statically typed reference to the value specified by `path`.
@@ -275,7 +307,7 @@ pub trait GetPath: PartialReflect {
     ///
     /// [`DynamicStruct`]: crate::DynamicStruct
     fn path<'p, T: Reflect>(&self, path: impl ReflectPath<'p>) -> PathResult<'p, &T> {
-        path.element(self.as_partial_reflect())
+        path.element(self as &dyn PartialReflect)
     }
 
     /// Returns a statically typed mutable reference to the value specified by `path`.
@@ -286,12 +318,48 @@ pub trait GetPath: PartialReflect {
     ///
     /// [`DynamicStruct`]: crate::DynamicStruct
     fn path_mut<'p, T: Reflect>(&mut self, path: impl ReflectPath<'p>) -> PathResult<'p, &mut T> {
-        path.element_mut(self.as_partial_reflect_mut())
+        path.element_mut(self as &mut dyn PartialReflect)
     }
 }
 
-// Implement `GetPath` for `dyn Reflect`
-impl<T: Reflect + ?Sized> GetPath for T {}
+impl GetPath for dyn Reflect {
+    fn reflect_path<'p>(&self, path: impl ReflectPath<'p>) -> PathResult<'p, &dyn PartialReflect> {
+        path.reflect_element(self as &dyn PartialReflect)
+    }
+
+    /// Returns a mutable reference to the value specified by `path`.
+    ///
+    /// To retrieve a statically typed mutable reference, use
+    /// [`path_mut`][GetPath::path_mut].
+    fn reflect_path_mut<'p>(
+        &mut self,
+        path: impl ReflectPath<'p>,
+    ) -> PathResult<'p, &mut dyn PartialReflect> {
+        path.reflect_element_mut(self as &mut dyn PartialReflect)
+    }
+
+    /// Returns a statically typed reference to the value specified by `path`.
+    ///
+    /// This will automatically handle downcasting to type `T`.
+    /// The downcast will fail if this value is not of type `T`
+    /// (which may be the case when using dynamic types like [`DynamicStruct`]).
+    ///
+    /// [`DynamicStruct`]: crate::DynamicStruct
+    fn path<'p, T: Reflect>(&self, path: impl ReflectPath<'p>) -> PathResult<'p, &T> {
+        path.element(self as &dyn PartialReflect)
+    }
+
+    /// Returns a statically typed mutable reference to the value specified by `path`.
+    ///
+    /// This will automatically handle downcasting to type `T`.
+    /// The downcast will fail if this value is not of type `T`
+    /// (which may be the case when using dynamic types like [`DynamicStruct`]).
+    ///
+    /// [`DynamicStruct`]: crate::DynamicStruct
+    fn path_mut<'p, T: Reflect>(&mut self, path: impl ReflectPath<'p>) -> PathResult<'p, &mut T> {
+        path.element_mut(self as &mut dyn PartialReflect)
+    }
+}
 
 /// An [`Access`] combined with an `offset` for more helpful error reporting.
 #[derive(Clone, Debug, PartialEq, PartialOrd, Ord, Eq, Hash)]

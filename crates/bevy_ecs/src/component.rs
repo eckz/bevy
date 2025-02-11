@@ -2216,9 +2216,7 @@ pub fn component_clone_via_reflect(commands: &mut Commands, ctx: &mut ComponentC
     if let Some(reflect_from_reflect) =
         registry.get_type_data::<bevy_reflect::ReflectFromReflect>(type_id)
     {
-        if let Some(mut component) =
-            reflect_from_reflect.from_reflect(source_component_reflect.as_partial_reflect())
-        {
+        if let Some(mut component) = reflect_from_reflect.from_reflect(source_component_reflect) {
             if let Some(reflect_component) =
                 registry.get_type_data::<crate::reflect::ReflectComponent>(type_id)
             {
@@ -2237,7 +2235,7 @@ pub fn component_clone_via_reflect(commands: &mut Commands, ctx: &mut ComponentC
         registry.get_type_data::<bevy_reflect::std_traits::ReflectDefault>(type_id)
     {
         let mut component = reflect_default.default();
-        component.apply(source_component_reflect.as_partial_reflect());
+        component.apply(source_component_reflect);
         drop(registry);
         ctx.write_target_component_reflect(component);
         return;
@@ -2266,7 +2264,7 @@ pub fn component_clone_via_reflect(commands: &mut Commands, ctx: &mut ComponentC
         commands.queue(move |world: &mut World| {
             let mut component = reflect_from_world.from_world(world);
             assert_eq!(type_id, (*component).type_id());
-            component.apply(source_component_cloned.as_partial_reflect());
+            component.apply(&*source_component_cloned);
             if let Some(reflect_component) = app_registry
                 .read()
                 .get_type_data::<crate::reflect::ReflectComponent>(type_id)

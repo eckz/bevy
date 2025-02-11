@@ -292,8 +292,7 @@ mod tests {
             .deserialize(&mut ron_deserializer)
             .unwrap();
 
-        let output =
-            <Foo as FromReflect>::from_reflect(dynamic_output.as_partial_reflect()).unwrap();
+        let output = <Foo as FromReflect>::from_reflect(&*dynamic_output).unwrap();
         assert_eq!(expected, output);
     }
 
@@ -406,9 +405,7 @@ mod tests {
         let output = reflect_deserializer.deserialize(&mut deserializer).unwrap();
 
         let expected = DynamicEnum::from(MyEnum::Tuple(1.23, 3.21));
-        assert!(expected
-            .reflect_partial_eq(output.as_partial_reflect())
-            .unwrap());
+        assert!(expected.reflect_partial_eq(&*output).unwrap());
 
         // === Struct Variant === //
         let input = r#"{
@@ -423,9 +420,7 @@ mod tests {
         let expected = DynamicEnum::from(MyEnum::Struct {
             value: String::from("I <3 Enums"),
         });
-        assert!(expected
-            .reflect_partial_eq(output.as_partial_reflect())
-            .unwrap());
+        assert!(expected.reflect_partial_eq(&*output).unwrap());
     }
 
     // Regression test for https://github.com/bevyengine/bevy/issues/12462
@@ -441,7 +436,7 @@ mod tests {
         let reflect_deserializer = ReflectDeserializer::new(&registry);
         let input2 = reflect_deserializer.deserialize(&mut deserializer).unwrap();
 
-        let serializer2 = ReflectSerializer::new(input2.as_partial_reflect(), &registry);
+        let serializer2 = ReflectSerializer::new(&*input2, &registry);
         let serialized2 = ron::ser::to_string(&serializer2).unwrap();
 
         assert_eq!(serialized1, serialized2);
@@ -574,8 +569,7 @@ mod tests {
             .deserialize(&mut ron_deserializer)
             .unwrap();
 
-        let output =
-            <Foo as FromReflect>::from_reflect(dynamic_output.as_partial_reflect()).unwrap();
+        let output = <Foo as FromReflect>::from_reflect(&*dynamic_output).unwrap();
         assert_eq!(expected, output);
     }
 
@@ -629,8 +623,7 @@ mod tests {
             .deserialize(&mut ron_deserializer)
             .unwrap();
 
-        let output =
-            <Foo as FromReflect>::from_reflect(dynamic_output.as_partial_reflect()).unwrap();
+        let output = <Foo as FromReflect>::from_reflect(&*dynamic_output).unwrap();
         assert_eq!(expected, output);
     }
 
@@ -761,7 +754,7 @@ mod tests {
             .deserialize(&mut ron_deserializer)
             .unwrap();
 
-        assert!(<Foo as FromReflect>::from_reflect(dynamic_output.as_partial_reflect()).is_none());
+        assert!(<Foo as FromReflect>::from_reflect(&*dynamic_output).is_none());
     }
 
     #[cfg(feature = "functions")]

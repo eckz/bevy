@@ -112,7 +112,7 @@ fn main() {
         let mut value: Box<dyn Reflect> = reflect_default.default();
         value.apply(deserialized.as_ref());
 
-        let identifiable: &dyn Identifiable = reflect_identifiable.get(value.as_reflect()).unwrap();
+        let identifiable: &dyn Identifiable = reflect_identifiable.get(&*value).unwrap();
         assert_eq!(identifiable.id(), 123);
     }
 
@@ -132,7 +132,7 @@ fn main() {
         let value: Box<dyn Reflect> = reflect_from_reflect
             .from_reflect(deserialized.as_ref())
             .unwrap();
-        let identifiable: &dyn Identifiable = reflect_identifiable.get(value.as_reflect()).unwrap();
+        let identifiable: &dyn Identifiable = reflect_identifiable.get(&*value).unwrap();
         assert_eq!(identifiable.id(), 123);
     }
 
@@ -147,13 +147,9 @@ fn main() {
     assert_eq!(my_list, vec![1, 2, 3]);
 
     // And if you want it to actually proxy a type, you can configure it to do that as well:
-    assert!(!my_dynamic_list
-        .as_partial_reflect()
-        .represents::<Vec<u32>>());
+    assert!(!(&my_dynamic_list as &dyn PartialReflect).represents::<Vec<u32>>());
     my_dynamic_list.set_represented_type(Some(<Vec<u32>>::type_info()));
-    assert!(my_dynamic_list
-        .as_partial_reflect()
-        .represents::<Vec<u32>>());
+    assert!((&my_dynamic_list as &dyn PartialReflect).represents::<Vec<u32>>());
 
     // ============================= REFERENCE ============================= //
     // For reference, here are all the available dynamic types:

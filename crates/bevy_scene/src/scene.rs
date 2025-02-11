@@ -154,7 +154,7 @@ impl Scene {
                     SceneEntityMapper::world_scope(entity_map, world, |world, mapper| {
                         reflect_component.apply_or_insert_mapped(
                             &mut world.entity_mut(entity),
-                            component.as_partial_reflect(),
+                            &*component,
                             &type_registry,
                             mapper,
                         );

@@ -62,9 +62,7 @@ mod tests {
         expected.insert("e", 7);
 
         assert!(
-            expected
-                .reflect_partial_eq(deserialized.as_partial_reflect())
-                .unwrap(),
+            expected.reflect_partial_eq(&*deserialized).unwrap(),
             "Deserialization failed: expected {expected:?} found {deserialized:?}"
         );
 
@@ -75,8 +73,7 @@ mod tests {
             d: -1,
             e: 7,
         };
-        let received =
-            <TestStruct as FromReflect>::from_reflect(deserialized.as_partial_reflect()).unwrap();
+        let received = <TestStruct as FromReflect>::from_reflect(&*deserialized).unwrap();
 
         assert_eq!(
             expected, received,
@@ -123,15 +120,12 @@ mod tests {
         expected.insert(7);
 
         assert!(
-            expected
-                .reflect_partial_eq(deserialized.as_partial_reflect())
-                .unwrap(),
+            expected.reflect_partial_eq(&*deserialized).unwrap(),
             "Deserialization failed: expected {expected:?} found {deserialized:?}"
         );
 
         let expected = TestStruct(3, 0, 0, -1, 7);
-        let received =
-            <TestStruct as FromReflect>::from_reflect(deserialized.as_partial_reflect()).unwrap();
+        let received = <TestStruct as FromReflect>::from_reflect(&*deserialized).unwrap();
 
         assert_eq!(
             expected, received,
@@ -178,9 +172,7 @@ mod tests {
         let expected = value.clone_value();
         let result = reflect_deserializer.deserialize(&mut deserializer).unwrap();
 
-        assert!(expected
-            .reflect_partial_eq(result.as_partial_reflect())
-            .unwrap());
+        assert!(expected.reflect_partial_eq(&*result).unwrap());
     }
 
     mod type_data {
@@ -261,10 +253,7 @@ mod tests {
             {
                 let mut state = serializer.serialize_seq(Some(self.0.len()))?;
                 for enemy in &self.0 {
-                    state.serialize_element(&ReflectSerializer::new(
-                        (**enemy).as_partial_reflect(),
-                        registry,
-                    ))?;
+                    state.serialize_element(&ReflectSerializer::new(&(**enemy), registry))?;
                 }
                 state.end()
             }

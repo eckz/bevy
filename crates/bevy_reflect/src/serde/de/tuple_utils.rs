@@ -1,3 +1,4 @@
+use super::ReflectDeserializerProcessor;
 use crate::{
     serde::{
         de::{error_utils::make_custom_error, registration_utils::try_get_registration},
@@ -8,8 +9,6 @@ use crate::{
 };
 use alloc::string::ToString;
 use serde::de::{Error, SeqAccess};
-
-use super::ReflectDeserializerProcessor;
 
 pub(super) trait TupleLikeInfo {
     fn field_at<E: Error>(&self, index: usize) -> Result<&UnnamedField, E>;
@@ -92,7 +91,7 @@ where
 
     for index in 0..len {
         if let Some(value) = serialization_data.and_then(|data| data.generate_default(index)) {
-            tuple.insert_boxed(value.into_partial_reflect());
+            tuple.insert_boxed(value);
             continue;
         }
 

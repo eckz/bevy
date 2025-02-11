@@ -102,7 +102,7 @@ use crate::{PartialReflect, TypeRegistry};
 ///         };
 ///
 ///         let untyped_handle = reflect_handle
-///             .downcast_handle_untyped(value.as_any())
+///             .downcast_handle_untyped(value)
 ///             .unwrap();
 ///         if let Some(path) = untyped_handle.path() {
 ///             Ok(Ok(serializer.serialize_str(path)?))

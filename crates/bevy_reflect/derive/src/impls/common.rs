@@ -14,60 +14,39 @@ pub fn impl_full_reflect(
     let (impl_generics, ty_generics, where_clause) = type_path.generics().split_for_impl();
     let where_reflect_clause = where_clause_options.extend_where_clause(where_clause);
 
-    let any_impls = if meta.is_remote_wrapper() {
+    let fq_box = quote! {
+        #bevy_reflect_path::__macro_exports::alloc_utils::Box
+    };
+
+    let remote_impls = if meta.is_remote_wrapper() {
         quote! {
             #[inline]
-            fn into_any(self: #bevy_reflect_path::__macro_exports::alloc_utils::Box<Self>) -> #bevy_reflect_path::__macro_exports::alloc_utils::Box<dyn #FQAny> {
-                #bevy_reflect_path::__macro_exports::alloc_utils::Box::new(self.0)
+            fn is_remote(&self) -> bool {
+                true
             }
 
             #[inline]
-            fn as_any(&self) -> &dyn #FQAny {
-                &self.0
+            fn try_into_remote(self: #fq_box<Self>) -> #FQOption<#fq_box<dyn #FQAny>> {
+                Some(#fq_box::new(self.0))
             }
 
             #[inline]
-            fn as_any_mut(&mut self) -> &mut dyn #FQAny {
-                &mut self.0
+            fn try_as_remote(&self) -> #FQOption<&dyn #FQAny> {
+                Some(&self.0)
+            }
+
+            #[inline]
+            fn try_as_remote_mut(&mut self) -> #FQOption<&mut dyn #FQAny> {
+                Some(&mut self.0)
             }
         }
     } else {
-        quote! {
-            #[inline]
-            fn into_any(self: #bevy_reflect_path::__macro_exports::alloc_utils::Box<Self>) -> #bevy_reflect_path::__macro_exports::alloc_utils::Box<dyn #FQAny> {
-                self
-            }
-
-            #[inline]
-            fn as_any(&self) -> &dyn #FQAny {
-                self
-            }
-
-            #[inline]
-            fn as_any_mut(&mut self) -> &mut dyn #FQAny {
-                self
-            }
-        }
+        quote! {}
     };
 
     quote! {
         impl #impl_generics #bevy_reflect_path::Reflect for #type_path #ty_generics #where_reflect_clause {
-            #any_impls
-
-            #[inline]
-            fn into_reflect(self: #bevy_reflect_path::__macro_exports::alloc_utils::Box<Self>) -> #bevy_reflect_path::__macro_exports::alloc_utils::Box<dyn #bevy_reflect_path::Reflect> {
-                self
-            }
-
-            #[inline]
-            fn as_reflect(&self) -> &dyn #bevy_reflect_path::Reflect {
-                self
-            }
-
-            #[inline]
-            fn as_reflect_mut(&mut self) -> &mut dyn #bevy_reflect_path::Reflect {
-                self
-            }
+            #remote_impls
 
             #[inline]
             fn set(
@@ -132,21 +111,6 @@ pub fn common_partial_reflect_methods(
         #[inline]
         fn try_as_reflect_mut(&mut self) -> #FQOption<&mut dyn #bevy_reflect_path::Reflect> {
             #FQOption::Some(self)
-        }
-
-        #[inline]
-        fn into_partial_reflect(self: #bevy_reflect_path::__macro_exports::alloc_utils::Box<Self>) -> #bevy_reflect_path::__macro_exports::alloc_utils::Box<dyn #bevy_reflect_path::PartialReflect> {
-            self
-        }
-
-        #[inline]
-        fn as_partial_reflect(&self) -> &dyn #bevy_reflect_path::PartialReflect {
-            self
-        }
-
-        #[inline]
-        fn as_partial_reflect_mut(&mut self) -> &mut dyn #bevy_reflect_path::PartialReflect {
-            self
         }
 
         #hash_fn

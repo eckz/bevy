@@ -328,7 +328,7 @@ impl<C: Component + Reflect + TypePath> FromType<C> for ReflectComponent {
                 if C::Mutability::MUTABLE {
                     // SAFETY: guard ensures `C` is a mutable component
                     if let Some(mut component) = unsafe { entity.get_mut_assume_mutable::<C>() } {
-                        component.apply(reflected_component.as_partial_reflect());
+                        component.apply(reflected_component);
                         C::visit_entities_mut(&mut component, map_fn);
                     } else {
                         let mut component = entity.world_scope(|world| {

@@ -190,8 +190,7 @@ impl<B: Bundle + Reflect + TypePath + BundleFromComponents> FromType<B> for Refl
                         }),
                         _ => panic!(
                             "expected bundle `{}` to be a named struct or tuple",
-                            // FIXME: once we have unique reflect, use `TypePath`.
-                            core::any::type_name::<B>(),
+                            B::type_path(),
                         ),
                     }
                 }
@@ -202,7 +201,7 @@ impl<B: Bundle + Reflect + TypePath + BundleFromComponents> FromType<B> for Refl
             take: |entity| {
                 entity
                     .take::<B>()
-                    .map(|bundle| Box::new(bundle).into_reflect())
+                    .map(|bundle| Box::new(bundle) as Box<dyn Reflect>)
             },
         })
     }

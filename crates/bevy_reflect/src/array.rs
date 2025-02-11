@@ -201,21 +201,6 @@ impl PartialReflect for DynamicArray {
         self.represented_type
     }
 
-    #[inline]
-    fn into_partial_reflect(self: Box<Self>) -> Box<dyn PartialReflect> {
-        self
-    }
-
-    #[inline]
-    fn as_partial_reflect(&self) -> &dyn PartialReflect {
-        self
-    }
-
-    #[inline]
-    fn as_partial_reflect_mut(&mut self) -> &mut dyn PartialReflect {
-        self
-    }
-
     fn try_into_reflect(self: Box<Self>) -> Result<Box<dyn Reflect>, Box<dyn PartialReflect>> {
         Err(self)
     }
@@ -334,7 +319,7 @@ impl<T: PartialReflect> FromIterator<T> for DynamicArray {
     fn from_iter<I: IntoIterator<Item = T>>(values: I) -> Self {
         values
             .into_iter()
-            .map(|value| Box::new(value).into_partial_reflect())
+            .map(|value| Box::new(value) as Box<dyn PartialReflect>)
             .collect()
     }
 }
@@ -519,7 +504,7 @@ mod tests {
             usize::MAX
         };
 
-        let b = Box::new([(); SIZE]).into_reflect();
+        let b = Box::new([(); SIZE]) as Box<dyn Reflect>;
 
         let array = b.reflect_ref().as_array().unwrap();
 

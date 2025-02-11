@@ -357,9 +357,9 @@ fn insert_reflect_with_registry_ref(
     };
 
     if let Some(reflect_component) = type_registration.data::<ReflectComponent>() {
-        reflect_component.insert(&mut entity, component.as_partial_reflect(), type_registry);
+        reflect_component.insert(&mut entity, &*component, type_registry);
     } else if let Some(reflect_bundle) = type_registration.data::<ReflectBundle>() {
-        reflect_bundle.insert(&mut entity, component.as_partial_reflect(), type_registry);
+        reflect_bundle.insert(&mut entity, &*component, type_registry);
     } else {
         panic!("`{type_path}` should have #[reflect(Component)] or #[reflect(Bundle)]");
     }

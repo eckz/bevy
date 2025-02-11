@@ -101,21 +101,6 @@ where
     /// [`TypeRegistry::get_type_info`]: crate::TypeRegistry::get_type_info
     fn get_represented_type_info(&self) -> Option<&'static TypeInfo>;
 
-    /// Casts this type to a boxed, reflected value.
-    ///
-    /// This is useful for coercing trait objects.
-    fn into_partial_reflect(self: Box<Self>) -> Box<dyn PartialReflect>;
-
-    /// Casts this type to a reflected value.
-    ///
-    /// This is useful for coercing trait objects.
-    fn as_partial_reflect(&self) -> &dyn PartialReflect;
-
-    /// Casts this type to a mutable, reflected value.
-    ///
-    /// This is useful for coercing trait objects.
-    fn as_partial_reflect_mut(&mut self) -> &mut dyn PartialReflect;
-
     /// Attempts to cast this type to a boxed, [fully-reflected] value.
     ///
     /// [fully-reflected]: Reflect
@@ -182,6 +167,12 @@ where
     fn apply(&mut self, value: &dyn PartialReflect) {
         PartialReflect::try_apply(self, value).unwrap();
     }
+    // #[track_caller]
+    // fn apply(&mut self, value: &dyn PartialReflect) {
+    //     PartialReflect::try_apply(self, value).unwrap_or_else(|err| {
+    //         panic!("Error while applying dynamic value: {err}")
+    //     });
+    // }
 
     /// Tries to [`apply`](PartialReflect::apply) a reflected value to this value.
     ///
@@ -313,29 +304,30 @@ where
     note = "consider annotating `{Self}` with `#[derive(Reflect)]`"
 )]
 pub trait Reflect: PartialReflect + DynamicTyped + Any {
+    fn is_remote(&self) -> bool {
+        false
+    }
+
     /// Returns the value as a [`Box<dyn Any>`][core::any::Any].
     ///
     /// For remote wrapper types, this will return the remote type instead.
-    fn into_any(self: Box<Self>) -> Box<dyn Any>;
+    fn try_into_remote(self: Box<Self>) -> Option<Box<dyn Any>> {
+        None
+    }
 
     /// Returns the value as a [`&dyn Any`][core::any::Any].
     ///
     /// For remote wrapper types, this will return the remote type instead.
-    fn as_any(&self) -> &dyn Any;
+    fn try_as_remote(&self) -> Option<&dyn Any> {
+        None
+    }
 
     /// Returns the value as a [`&mut dyn Any`][core::any::Any].
     ///
     /// For remote wrapper types, this will return the remote type instead.
-    fn as_any_mut(&mut self) -> &mut dyn Any;
-
-    /// Casts this type to a boxed, fully-reflected value.
-    fn into_reflect(self: Box<Self>) -> Box<dyn Reflect>;
-
-    /// Casts this type to a fully-reflected value.
-    fn as_reflect(&self) -> &dyn Reflect;
-
-    /// Casts this type to a mutable, fully-reflected value.
-    fn as_reflect_mut(&mut self) -> &mut dyn Reflect;
+    fn try_as_remote_mut(&mut self) -> Option<&mut dyn Any> {
+        None
+    }
 
     /// Performs a type-checked assignment of a reflected value to this value.
     ///
@@ -366,7 +358,7 @@ impl dyn PartialReflect {
     ) -> Result<Box<T>, Box<dyn PartialReflect>> {
         self.try_into_reflect()?
             .downcast()
-            .map_err(PartialReflect::into_partial_reflect)
+            .map_err(|b| b as Box<dyn PartialReflect>)
     }
 
     /// Downcasts the value to type `T`, unboxing and consuming the trait object.
@@ -427,7 +419,11 @@ impl dyn Reflect {
     /// For remote types, `T` should be the type itself rather than the wrapper type.
     pub fn downcast<T: Any>(self: Box<dyn Reflect>) -> Result<Box<T>, Box<dyn Reflect>> {
         if self.is::<T>() {
-            Ok(self.into_any().downcast().unwrap())
+            Ok(if self.is_remote() {
+                self.try_into_remote().unwrap().downcast::<T>().unwrap()
+            } else {
+                (self as Box<dyn Any>).downcast::<T>().unwrap()
+            })
         } else {
             Err(self)
         }
@@ -456,7 +452,7 @@ impl dyn Reflect {
     /// [`FromReflect`]: crate::FromReflect
     #[inline]
     pub fn is<T: Any>(&self) -> bool {
-        self.as_any().type_id() == TypeId::of::<T>()
+        self.try_as_remote().unwrap_or(self as &dyn Any).type_id() == TypeId::of::<T>()
     }
 
     /// Downcasts the value to type `T` by reference.
@@ -466,7 +462,9 @@ impl dyn Reflect {
     /// For remote types, `T` should be the type itself rather than the wrapper type.
     #[inline]
     pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
-        self.as_any().downcast_ref::<T>()
+        self.try_as_remote()
+            .unwrap_or(self as &dyn Any)
+            .downcast_ref::<T>()
     }
 
     /// Downcasts the value to type `T` by mutable reference.
@@ -476,7 +474,11 @@ impl dyn Reflect {
     /// For remote types, `T` should be the type itself rather than the wrapper type.
     #[inline]
     pub fn downcast_mut<T: Any>(&mut self) -> Option<&mut T> {
-        self.as_any_mut().downcast_mut::<T>()
+        if self.is_remote() {
+            self.try_as_remote_mut().unwrap().downcast_mut()
+        } else {
+            (self as &mut dyn Any).downcast_mut()
+        }
     }
 }
 
@@ -508,30 +510,6 @@ impl TypePath for dyn Reflect {
 macro_rules! impl_full_reflect {
     ($(<$($id:ident),* $(,)?>)? for $ty:ty $(where $($tt:tt)*)?) => {
         impl $(<$($id),*>)? $crate::Reflect for $ty $(where $($tt)*)? {
-            fn into_any(self: Box<Self>) -> Box<dyn ::core::any::Any> {
-                self
-            }
-
-            fn as_any(&self) -> &dyn ::core::any::Any {
-                self
-            }
-
-            fn as_any_mut(&mut self) -> &mut dyn ::core::any::Any {
-                self
-            }
-
-            fn into_reflect(self: Box<Self>) -> Box<dyn $crate::Reflect> {
-                self
-            }
-
-            fn as_reflect(&self) -> &dyn $crate::Reflect {
-                self
-            }
-
-            fn as_reflect_mut(&mut self) -> &mut dyn $crate::Reflect {
-                self
-            }
-
             fn set(
                 &mut self,
                 value: Box<dyn $crate::Reflect>,

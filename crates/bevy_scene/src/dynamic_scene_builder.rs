@@ -308,8 +308,8 @@ impl<'w> DynamicSceneBuilder<'w> {
                     // deserialize.
                     let component = type_registration
                         .data::<ReflectFromReflect>()
-                        .and_then(|fr| fr.from_reflect(component.as_partial_reflect()))
-                        .map(PartialReflect::into_partial_reflect)
+                        .and_then(|fr| fr.from_reflect(component))
+                        .map(|b| b as Box<dyn PartialReflect>)
                         .unwrap_or_else(|| component.clone_value());
 
                     entry.components.push(component);
@@ -385,8 +385,8 @@ impl<'w> DynamicSceneBuilder<'w> {
 
                 let resource = type_registration
                     .data::<ReflectFromReflect>()
-                    .and_then(|fr| fr.from_reflect(resource.as_partial_reflect()))
-                    .map(PartialReflect::into_partial_reflect)
+                    .and_then(|fr| fr.from_reflect(resource))
+                    .map(|b| b as Box<dyn PartialReflect>)
                     .unwrap_or_else(|| resource.clone_value());
 
                 self.extracted_resources.insert(component_id, resource);

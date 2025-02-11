@@ -122,10 +122,7 @@ where
             let Ok(field) = info.field_at::<V::Error>(*skipped_index) else {
                 continue;
             };
-            dynamic_struct.insert_boxed(
-                field.name(),
-                skipped_field.generate_default().into_partial_reflect(),
-            );
+            dynamic_struct.insert_boxed(field.name(), skipped_field.generate_default());
         }
     }
 
@@ -166,7 +163,7 @@ where
             .unwrap_or_default()
         {
             if let Some(value) = serialization_data.unwrap().generate_default(index) {
-                dynamic_struct.insert_boxed(name, value.into_partial_reflect());
+                dynamic_struct.insert_boxed(name, value);
             }
             continue;
         }

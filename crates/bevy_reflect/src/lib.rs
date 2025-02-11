@@ -68,11 +68,7 @@
 //! ## Converting between `PartialReflect` and `Reflect`
 //!
 //! Since `T: Reflect` implies `T: PartialReflect`, conversion from a `dyn Reflect` to a `dyn PartialReflect`
-//! trait object (upcasting) is infallible and can be performed with one of the following methods.
-//! Note that these are temporary while [the language feature for dyn upcasting coercion] is experimental:
-//! * [`PartialReflect::as_partial_reflect`] for `&dyn PartialReflect`
-//! * [`PartialReflect::as_partial_reflect_mut`] for `&mut dyn PartialReflect`
-//! * [`PartialReflect::into_partial_reflect`] for `Box<dyn PartialReflect>`
+//! trait object (upcasting) is infallible.
 //!
 //! For conversion in the other direction — downcasting `dyn PartialReflect` to `dyn Reflect` —
 //! there are fallible methods:
@@ -163,10 +159,6 @@
 //! let my_tuple = my_tuple.reflect_ref().as_tuple().unwrap();
 //! assert_eq!(3, my_tuple.field_len());
 //! ```
-//!
-//! And to go back to a general-purpose `dyn PartialReflect`,
-//! we can just use the matching [`PartialReflect::as_partial_reflect`], [`PartialReflect::as_partial_reflect_mut`],
-//! or [`PartialReflect::into_partial_reflect`] methods.
 //!
 //! ## Opaque Types
 //!
@@ -430,7 +422,7 @@
 //! registry.register::<MyStruct>();
 //!
 //! // Serialize
-//! let reflect_serializer = ReflectSerializer::new(original_value.as_partial_reflect(), &registry);
+//! let reflect_serializer = ReflectSerializer::new(&original_value, &registry);
 //! let serialized_value: String = ron::to_string(&reflect_serializer).unwrap();
 //!
 //! // Deserialize
@@ -1012,12 +1004,10 @@ mod tests {
 
         // Assert
         let expected = MyStruct { foo: 123 };
-        assert!(expected
-            .reflect_partial_eq(reflected.as_partial_reflect())
-            .unwrap_or_default());
+        assert!(expected.reflect_partial_eq(&*reflected).unwrap_or_default());
         let not_expected = MyStruct { foo: 321 };
         assert!(!not_expected
-            .reflect_partial_eq(reflected.as_partial_reflect())
+            .reflect_partial_eq(&*reflected)
             .unwrap_or_default());
     }
 
@@ -1464,7 +1454,7 @@ mod tests {
         let mut deserializer = Deserializer::from_str(&serialized).unwrap();
         let reflect_deserializer = ReflectDeserializer::new(&registry);
         let value = reflect_deserializer.deserialize(&mut deserializer).unwrap();
-        let roundtrip_foo = Foo::from_reflect(value.as_partial_reflect()).unwrap();
+        let roundtrip_foo = Foo::from_reflect(&*value).unwrap();
 
         assert!(foo.reflect_partial_eq(&roundtrip_foo).unwrap());
     }
@@ -2122,7 +2112,7 @@ mod tests {
         let trait_object: Box<dyn TestTrait> = Box::new(TestStruct);
 
         // Should compile:
-        let _ = trait_object.into_reflect();
+        let _ = trait_object as Box<dyn Reflect>;
     }
 
     #[test]
@@ -2137,7 +2127,7 @@ mod tests {
         let trait_object: Box<dyn TestTrait> = Box::new(TestStruct);
 
         // Should compile:
-        let _ = trait_object.as_reflect();
+        let _ = &*trait_object as &dyn Reflect;
     }
 
     #[test]
@@ -3073,7 +3063,7 @@ bevy_reflect::tests::Test {
 
             let mut result = Quat::default();
 
-            result.apply(dynamic_struct.as_partial_reflect());
+            result.apply(&*dynamic_struct);
 
             assert_eq!(result, quat(1.0, 2.0, 3.0, 4.0));
         }
@@ -3122,7 +3112,7 @@ bevy_reflect::tests::Test {
 
             let mut result = Vec3::default();
 
-            result.apply(dynamic_struct.as_partial_reflect());
+            result.apply(&*dynamic_struct);
 
             assert_eq!(result, vec3(12.0, 3.0, -6.9));
         }

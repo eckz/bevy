@@ -1,6 +1,5 @@
 use alloc::{boxed::Box, vec::Vec};
 use bevy_reflect_derive::impl_type_path;
-use core::any::Any;
 use smallvec::{Array as SmallArray, SmallVec};
 
 use crate::{
@@ -85,19 +84,6 @@ where
         Some(<Self as Typed>::type_info())
     }
 
-    #[inline]
-    fn into_partial_reflect(self: Box<Self>) -> Box<dyn PartialReflect> {
-        self
-    }
-
-    fn as_partial_reflect(&self) -> &dyn PartialReflect {
-        self
-    }
-
-    fn as_partial_reflect_mut(&mut self) -> &mut dyn PartialReflect {
-        self
-    }
-
     fn try_into_reflect(self: Box<Self>) -> Result<Box<dyn Reflect>, Box<dyn PartialReflect>> {
         Ok(self)
     }
@@ -147,30 +133,6 @@ impl<T: SmallArray + TypePath + Send + Sync> Reflect for SmallVec<T>
 where
     T::Item: FromReflect + MaybeTyped + TypePath,
 {
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
-        self
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-
-    fn into_reflect(self: Box<Self>) -> Box<dyn Reflect> {
-        self
-    }
-
-    fn as_reflect(&self) -> &dyn Reflect {
-        self
-    }
-
-    fn as_reflect_mut(&mut self) -> &mut dyn Reflect {
-        self
-    }
-
     fn set(&mut self, value: Box<dyn Reflect>) -> Result<(), Box<dyn Reflect>> {
         *self = value.take()?;
         Ok(())
