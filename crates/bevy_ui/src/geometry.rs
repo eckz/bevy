@@ -1,6 +1,8 @@
 use bevy_math::Vec2;
 use bevy_reflect::{std_traits::ReflectDefault, Reflect};
 use core::ops::{Div, DivAssign, Mul, MulAssign, Neg};
+use std::cmp::Ordering;
+use std::mem;
 use thiserror::Error;
 
 #[cfg(feature = "serialize")]
@@ -119,44 +121,48 @@ impl core::str::FromStr for Val {
     }
 }
 
+impl Val {
+    fn inner_f32_value(&self) -> Option<f32> {
+        match self {
+            Val::Auto => None,
+            Val::Px(v)
+            | Val::Percent(v)
+            | Val::Vw(v)
+            | Val::Vh(v)
+            | Val::VMin(v)
+            | Val::VMax(v) => Some(*v),
+        }
+    }
+}
+
 impl PartialEq for Val {
     fn eq(&self, other: &Self) -> bool {
-        let same_unit = matches!(
-            (self, other),
-            (Self::Auto, Self::Auto)
-                | (Self::Px(_), Self::Px(_))
-                | (Self::Percent(_), Self::Percent(_))
-                | (Self::Vw(_), Self::Vw(_))
-                | (Self::Vh(_), Self::Vh(_))
-                | (Self::VMin(_), Self::VMin(_))
-                | (Self::VMax(_), Self::VMax(_))
-        );
-
-        let left = match self {
-            Self::Auto => None,
-            Self::Px(v)
-            | Self::Percent(v)
-            | Self::Vw(v)
-            | Self::Vh(v)
-            | Self::VMin(v)
-            | Self::VMax(v) => Some(v),
-        };
-
-        let right = match other {
-            Self::Auto => None,
-            Self::Px(v)
-            | Self::Percent(v)
-            | Self::Vw(v)
-            | Self::Vh(v)
-            | Self::VMin(v)
-            | Self::VMax(v) => Some(v),
-        };
-
+        let same_unit = mem::discriminant(self) == mem::discriminant(other);
+        let left = self.inner_f32_value();
+        let right = other.inner_f32_value();
         match (same_unit, left, right) {
             (true, a, b) => a == b,
             // All zero-value variants are considered equal.
-            (false, Some(&a), Some(&b)) => a == 0. && b == 0.,
+            (false, Some(a), Some(b)) => a == 0. && b == 0.,
             _ => false,
+        }
+    }
+}
+
+impl PartialOrd for Val {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self == other {
+            return Some(Ordering::Equal);
+        }
+        let same_unit = mem::discriminant(self) == mem::discriminant(other);
+        let left = self.inner_f32_value();
+        let right = other.inner_f32_value();
+
+        match (same_unit, left, right) {
+            (true, Some(a), Some(b)) => a.partial_cmp(&b),
+            (false, _, Some(b)) if *self == Val::ZERO => 0.0.partial_cmp(&b),
+            (false, Some(a), _) if *other == Val::ZERO => a.partial_cmp(&0.),
+            _ => None,
         }
     }
 }
@@ -682,6 +688,26 @@ impl Default for UiRect {
 mod tests {
     use crate::geometry::*;
     use bevy_math::vec2;
+
+    #[test]
+    fn val_partial_cmp() {
+        assert!(Val::Px(250.) >= Val::Px(250.));
+        assert!(Val::Px(300.) > Val::Px(250.));
+        assert!(Val::Percent(-100.) < Val::Percent(200.));
+        assert!(Val::Auto <= Val::Auto);
+
+        // Different units are not comparable
+        assert!(!(Val::Percent(10.) <= Val::Px(30.0)));
+        assert!(!(Val::Percent(10.) >= Val::Px(30.0)));
+        assert!(!(Val::Auto >= Val::ZERO));
+        assert!(!(Val::Auto <= Val::ZERO));
+
+        // Unless we're comparing with zero and the other side is not Auto
+        assert!(Val::Percent(10.) > Val::Px(0.));
+        assert!(Val::Percent(-10.) < Val::Px(0.));
+        assert!(Val::Vh(-10.) < Val::Percent(0.));
+        assert!(Val::Vw(10.) > Val::Percent(0.));
+    }
 
     #[test]
     fn val_evaluate() {
