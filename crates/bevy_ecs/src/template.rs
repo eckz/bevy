@@ -403,6 +403,8 @@ pub trait SpecializeFromTemplate: Sized {}
 
 /// A [`Template`] reference to an [`Entity`].
 pub enum EntityReference {
+    /// A reference to a specific [`Entity`]
+    SpecificEntity(Entity),
     /// A reference to an entity via a [`ScopedEntityIndex`]
     ScopedEntityIndex(ScopedEntityIndex),
 }
@@ -427,12 +429,19 @@ impl Default for EntityReference {
     }
 }
 
+impl From<Entity> for EntityReference {
+    fn from(entity: Entity) -> Self {
+        Self::SpecificEntity(entity)
+    }
+}
+
 impl Template for EntityReference {
     type Output = Entity;
 
     fn build_template(&self, context: &mut TemplateContext) -> Result<Self::Output> {
         Ok(match self {
-            EntityReference::ScopedEntityIndex(scoped_entity_index) => {
+            Self::SpecificEntity(entity) => *entity,
+            Self::ScopedEntityIndex(scoped_entity_index) => {
                 context.get_scoped_entity(*scoped_entity_index)
             }
         })
@@ -440,6 +449,7 @@ impl Template for EntityReference {
 
     fn clone_template(&self) -> Self {
         match self {
+            Self::SpecificEntity(entity) => Self::SpecificEntity(*entity),
             Self::ScopedEntityIndex(scoped_entity_index) => {
                 Self::ScopedEntityIndex(*scoped_entity_index)
             }
